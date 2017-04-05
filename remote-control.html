@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+		<script>
+			function sendCommand(command) {
+				console.log('Sending: ', command);
+
+				$.post('http://localhost:27016', command, function (response) {
+					
+				}, 'text').fail(function () {
+					sendCommand(command);
+				})
+			}
+
+			function tap(pos, hold) {
+				if (hold) {
+					swipe(pos, pos, 1000);
+				} else {
+					sendCommand('adb shell input tap ' + pos.x + ' ' + pos.y);
+				}
+			}
+
+			function swipe(startPos, endPos, duration) {
+				sendCommand('adb shell input touchscreen swipe ' + startPos.x + ' ' + startPos.y + ' ' + endPos.x + ' ' + endPos.y + ' ' + duration);
+			}
+
+			function text(text) {
+				text = text.replace(' ', '%s');
+				text = text.replace('"', '\\"');
+				sendCommand('adb shell input text "' + text + '"');
+			}
+
+			function key(keycode) {
+				sendCommand('adb shell input keyevent ' + keycode);
+			}
+
+			$(document).ready(function(){
+				var mouseDownPos = {};
+				var mouseUpPos = {};
+				var mouseDownTime = 0;
+			    $('.area').mousedown(function (e) {
+			    	mouseDownPos = {
+			    		x: e.pageX - $(this).parent().offset().left,
+			    		y: e.pageY - $(this).parent().offset().top
+			    	};
+
+			    	mouseDownTime = (new Date()).getTime();
+			    });
+
+			    $('.area').mouseup(function (e) {
+			    	if (mouseDownTime === 0) {
+			    		return;
+			    	}
+
+			    	mouseUpPos = {
+			    		x: e.pageX - $(this).parent().offset().left,
+			    		y: e.pageY - $(this).parent().offset().top
+			    	};
+
+			    	var mouseDelta = {
+			    		x: mouseUpPos.x - mouseDownPos.x,
+			    		y: mouseUpPos.y - mouseDownPos.y
+			    	};
+
+			    	if (mouseDelta.x > 0 || mouseDelta.y > 0) {
+			    		swipe(mouseDownPos, mouseUpPos, ((new Date()).getTime() - mouseDownTime));
+			    		mouseDownTime = 0;
+			    	} else {
+			    		tap(mouseUpPos, e.button === 2);
+			    		mouseDownTime = 0;
+			    	}
+			    });
+
+			    $('#input-button').click(function () {
+			    	text($('#input').val());
+			    });
+
+			    $('.key-button').click(function () {
+			    	key($(this).data('keycode'));
+			    });
+			});
+		</script>
+
+		<style>
+			.area {
+				width: 1280px;
+				height: 800px;
+
+				background-color: gray;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="area">
+		</div>
+		<div>
+			<input type="text" id="input" style="width: 100%" />
+			<button type="button" id="input-button" style="width: 100%">Send</button>
+		</div>
+		<div>
+			<button type="button" class="key-button" data-keycode="4">Back</button>
+			<button type="button" class="key-button" data-keycode="3">Home</button>
+			<button type="button" class="key-button" data-keycode="1">Menu 1</button>
+			<button type="button" class="key-button" data-keycode="82">Menu 82</button>
+			<button type="button" class="key-button" data-keycode="24">Vol Up</button>
+			<button type="button" class="key-button" data-keycode="25">Vol Down</button>
+			<button type="button" class="key-button" data-keycode="26">Power</button>
+			<button type="button" class="key-button" data-keycode="66">Enter</button>
+			<button type="button" class="key-button" data-keycode="67">Del</button>
+			<button type="button" class="key-button" data-keycode="83">Notification</button>
+		</div>
+	</body>
+</html>
